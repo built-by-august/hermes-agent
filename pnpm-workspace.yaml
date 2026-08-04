@@ -1,0 +1,7 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+# pnpm 11: allow esbuild's postinstall build script.
+allowBuilds:
+  esbuild: true
