@@ -1,0 +1,11 @@
+{
+  "slug": "slack-incident-alert",
+  "name": "Slack Incident Alert",
+  "version": "0.1.0",
+  "description": "Wires a Slack channel alert when an ops step on the map fails or is marked needs_attention.",
+  "phases": ["suggest", "implement", "wire", "verify", "handoff"],
+  "capabilities": { "connectors": ["slack"], "risk": "low" },
+  "entry": "index.ts",
+  "implemented": true,
+  "remainingWork": []
+}
