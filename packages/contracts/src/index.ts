@@ -213,6 +213,31 @@ export const startSkillRunRequestSchema = z.object({
 export type StartSkillRunRequest = z.infer<typeof startSkillRunRequestSchema>
 
 /* ---------------------------------------------------------------- *
+ *  Connectors
+ * ---------------------------------------------------------------- */
+export const connectorStatusSchema = z.enum(['disconnected', 'configured', 'verified'])
+export type ConnectorStatus = z.infer<typeof connectorStatusSchema>
+
+export const connectorSchema = z.object({
+  id: uuid,
+  orgId: uuid,
+  kind: z.string().min(1),
+  displayName: z.string().min(1),
+  status: connectorStatusSchema.default('disconnected'),
+  implemented: z.boolean().default(true),
+  config: z.record(z.unknown()).default({}),
+  createdAt: isoDate,
+})
+export type Connector = z.infer<typeof connectorSchema>
+
+export const createConnectorRequestSchema = z.object({
+  kind: z.string().min(1),
+  displayName: z.string().min(1),
+  config: z.record(z.unknown()).default({}),
+})
+export type CreateConnectorRequest = z.infer<typeof createConnectorRequestSchema>
+
+/* ---------------------------------------------------------------- *
  *  Handoff reports
  * ---------------------------------------------------------------- */
 export const handoffReportSchema = z.object({

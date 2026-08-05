@@ -8,7 +8,12 @@ import { describe, expect, it } from 'vitest'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { loadSkillFromDir, loadSkillsFromDir, validateManifest, skillManifestSchema } from '../loader.js'
+import {
+  loadSkillFromDir,
+  loadSkillsFromDir,
+  validateManifest,
+  skillManifestSchema,
+} from '../loader.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // src/tests -> ../skills
@@ -24,7 +29,9 @@ describe('skill package loader', () => {
   })
 
   it('manifest-only load skips the entry import', async () => {
-    const pkg = await loadSkillFromDir(path.join(skillsDir, 'slack-incident-alert'), { manifestOnly: true })
+    const pkg = await loadSkillFromDir(path.join(skillsDir, 'slack-incident-alert'), {
+      manifestOnly: true,
+    })
     expect(pkg.manifest.slug).toBe('slack-incident-alert')
   })
 

@@ -90,7 +90,11 @@ describe('auth', () => {
     const body = res.json()
     expect(body.user.id).toBe(userId)
     expect(body.memberships).toHaveLength(1)
-    expect(body.memberships[0]).toMatchObject({ orgId, orgName: 'Rutherford Consulting', role: 'owner' })
+    expect(body.memberships[0]).toMatchObject({
+      orgId,
+      orgName: 'Rutherford Consulting',
+      role: 'owner',
+    })
   })
 
   it('rejects /auth/me without a token', async () => {

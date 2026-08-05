@@ -6,17 +6,17 @@ handoff` automation loop from `docs/architecture.md` §6.
 
 ## Packages surface (`@repo/skills`)
 
-| Area | File | Responsibility |
-| ---- | ---- | -------------- |
-| Types | `src/types.ts` | `SkillManifest`, `SkillLifecycle`, `SkillPackage`, `Connector`, `AuditSink`, `SkillRunState`, phase enums. |
-| Loader | `src/loader.ts` | Validates `skill.json` (Zod) + imports the entry module (`SkillLifecycle` default export). `loadSkillFromDir` / `loadSkillsFromDir`. |
-| Registry | `src/registry.ts` | `SkillRegistry` + `createDefaultSkillRegistry()` (ships `slack-incident-alert`). |
-| Engine | `src/engine.ts` | `SkillEngine` orchestrates the lifecycle, guarantees an immutable audit event on **entry + completion** of every phase; `runFullLifecycle` runs the whole loop. |
-| Audit | `src/audit.ts` | `InMemoryAuditSink` — reference append-only sink (the API implements the real one against the `AuditEvent` table). |
-| Credentials | `src/credentials.ts` | Opaque `enc:v1:` credential vault — secrets never leave the vault; only refs are returned. |
-| Connectors | `src/connectors/index.ts` | Generic `Connector` interface + simulated `SlackConnector` + **Buzz adapter STUB**. |
-| Sample skill | `src/skills/slack-incident-alert/` | Complete MVP skill: `skill.json`, `index.ts` (lifecycle), `checks.ts`. |
-| Demo | `src/demo/run-demo.ts` | `runDemo()` — full drill used by tests + `pnpm demo`. |
+| Area         | File                               | Responsibility                                                                                                                                                  |
+| ------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Types        | `src/types.ts`                     | `SkillManifest`, `SkillLifecycle`, `SkillPackage`, `Connector`, `AuditSink`, `SkillRunState`, phase enums.                                                      |
+| Loader       | `src/loader.ts`                    | Validates `skill.json` (Zod) + imports the entry module (`SkillLifecycle` default export). `loadSkillFromDir` / `loadSkillsFromDir`.                            |
+| Registry     | `src/registry.ts`                  | `SkillRegistry` + `createDefaultSkillRegistry()` (ships `slack-incident-alert`).                                                                                |
+| Engine       | `src/engine.ts`                    | `SkillEngine` orchestrates the lifecycle, guarantees an immutable audit event on **entry + completion** of every phase; `runFullLifecycle` runs the whole loop. |
+| Audit        | `src/audit.ts`                     | `InMemoryAuditSink` — reference append-only sink (the API implements the real one against the `AuditEvent` table).                                              |
+| Credentials  | `src/credentials.ts`               | Opaque `enc:v1:` credential vault — secrets never leave the vault; only refs are returned.                                                                      |
+| Connectors   | `src/connectors/index.ts`          | Generic `Connector` interface + simulated `SlackConnector` + **Buzz adapter STUB**.                                                                             |
+| Sample skill | `src/skills/slack-incident-alert/` | Complete MVP skill: `skill.json`, `index.ts` (lifecycle), `checks.ts`.                                                                                          |
+| Demo         | `src/demo/run-demo.ts`             | `runDemo()` — full drill used by tests + `pnpm demo`.                                                                                                           |
 
 ## Lifecycle & audit trail
 

@@ -90,7 +90,12 @@ export class SkillEngine {
       updatedAt: now,
     }
     this.runs.set(id, state)
-    this.audit(state.orgId, 'skill.run.started', { runId: id, phase, slug: state.slug, dryRun: state.dryRun }, 'info')
+    this.audit(
+      state.orgId,
+      'skill.run.started',
+      { runId: id, phase, slug: state.slug, dryRun: state.dryRun },
+      'info'
+    )
     return state
   }
 
@@ -113,7 +118,12 @@ export class SkillEngine {
     const phase = run.phase
     const ctx = this.buildContext(run, input)
 
-    this.audit(run.orgId, `skill.${phase}.started`, { runId, phase, slug: pkg.manifest.slug }, 'info')
+    this.audit(
+      run.orgId,
+      `skill.${phase}.started`,
+      { runId, phase, slug: pkg.manifest.slug },
+      'info'
+    )
     run.status = 'running'
     run.updatedAt = new Date().toISOString()
     this.audit(run.orgId, `skill.${phase}.running`, { runId, phase }, 'info')
@@ -125,11 +135,21 @@ export class SkillEngine {
 
       const isLast = phase === 'handoff'
       run.status = isLast ? 'completed' : 'pending'
-      run.phase = isLast ? 'handoff' : PHASES[phaseIndex(phase) + 1] ?? phase
+      run.phase = isLast ? 'handoff' : (PHASES[phaseIndex(phase) + 1] ?? phase)
 
-      this.audit(run.orgId, `skill.${phase}.completed`, { runId, phase, slug: pkg.manifest.slug, output }, 'info')
+      this.audit(
+        run.orgId,
+        `skill.${phase}.completed`,
+        { runId, phase, slug: pkg.manifest.slug, output },
+        'info'
+      )
       if (isLast) {
-        this.audit(run.orgId, 'skill.handoff.report.archived', { runId, slug: pkg.manifest.slug, report: output }, 'info')
+        this.audit(
+          run.orgId,
+          'skill.handoff.report.archived',
+          { runId, slug: pkg.manifest.slug, report: output },
+          'info'
+        )
       }
       return run
     } catch (err) {
@@ -157,7 +177,7 @@ export class SkillEngine {
     lifecycle: SkillLifecycle,
     phase: SkillPhase,
     ctx: SkillContext,
-    run: SkillRunState,
+    run: SkillRunState
   ): Promise<unknown> {
     switch (phase) {
       case 'suggest': {
@@ -187,7 +207,13 @@ export class SkillEngine {
           credentialRef: string
           wiringPlan: Record<string, unknown>
           status: 'configured' | 'verified'
-        }) ?? { connectorKind: '', endpoint: '', credentialRef: '', wiringPlan: {}, status: 'configured' as const }
+        }) ?? {
+          connectorKind: '',
+          endpoint: '',
+          credentialRef: '',
+          wiringPlan: {},
+          status: 'configured' as const,
+        }
         return lifecycle.verify(ctx, wiring)
       }
       case 'handoff': {
@@ -218,7 +244,7 @@ export class SkillEngine {
     orgId: string,
     action: string,
     context: Record<string, unknown>,
-    severity: 'info' | 'warning' | 'critical' = 'info',
+    severity: 'info' | 'warning' | 'critical' = 'info'
   ) {
     this.opts.audit.append({
       orgId,

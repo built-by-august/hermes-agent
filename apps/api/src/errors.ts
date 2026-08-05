@@ -54,15 +54,25 @@ export function registerErrorHandlers(app: FastifyInstance): void {
     if (isPrismaError(error)) {
       switch (error.code) {
         case 'P2002':
-          reply
-            .code(409)
-            .send({ error: 'conflict', message: 'A record with those unique fields already exists', status: 409 })
+          reply.code(409).send({
+            error: 'conflict',
+            message: 'A record with those unique fields already exists',
+            status: 409,
+          })
           return
         case 'P2025':
-          reply.code(404).send({ error: 'not_found', message: 'The requested record was not found', status: 404 })
+          reply.code(404).send({
+            error: 'not_found',
+            message: 'The requested record was not found',
+            status: 404,
+          })
           return
         case 'P2003':
-          reply.code(400).send({ error: 'invalid_reference', message: 'Referenced record does not exist', status: 400 })
+          reply.code(400).send({
+            error: 'invalid_reference',
+            message: 'Referenced record does not exist',
+            status: 400,
+          })
           return
       }
     }

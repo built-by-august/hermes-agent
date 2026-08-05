@@ -251,7 +251,11 @@ export function registerOperationsRoutes(app: FastifyInstance, deps: OperationsR
         where: { id: body.target, orgId },
       })
       if (!source || !target) {
-        throw new ApiError(400, 'invalid_reference', 'Both edge endpoints must be nodes of this organization')
+        throw new ApiError(
+          400,
+          'invalid_reference',
+          'Both edge endpoints must be nodes of this organization'
+        )
       }
 
       const edge = await prisma.operationEdge.create({

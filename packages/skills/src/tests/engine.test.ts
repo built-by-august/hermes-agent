@@ -14,7 +14,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { createAuditSink, InMemoryAuditSink } from '../audit.js'
 import { storeCredential, isCredentialRef, clearVault, readCredential } from '../credentials.js'
-import { createConnectorResolver, createBuzzConnectorStub, BUZZ_STUB_REMAINING_WORK } from '../connectors/index.js'
+import {
+  createConnectorResolver,
+  createBuzzConnectorStub,
+  BUZZ_STUB_REMAINING_WORK,
+} from '../connectors/index.js'
 import { createEngine } from '../engine.js'
 import { createDefaultSkillRegistry, SkillRegistry } from '../registry.js'
 import { slackIncidentAlert } from '../skills/slack-incident-alert/index.js'
@@ -46,7 +50,14 @@ function demoMap(): OperationMap {
       },
     ],
     edges: [
-      { id: 'edge_01', orgId: 'org_demo', source: 'node_01', target: 'node_02', label: 'writes to', type: 'data_flow' },
+      {
+        id: 'edge_01',
+        orgId: 'org_demo',
+        source: 'node_01',
+        target: 'node_02',
+        label: 'writes to',
+        type: 'data_flow',
+      },
     ],
   }
 }
@@ -105,7 +116,10 @@ describe('skill engine — full lifecycle acceptance', () => {
       'skill.handoff.report.archived',
     ]
     for (const prefix of expectedPrefixes) {
-      expect(actions.some((a) => a === prefix || a.startsWith(prefix)), `missing audit action "${prefix}"`).toBe(true)
+      expect(
+        actions.some((a) => a === prefix || a.startsWith(prefix)),
+        `missing audit action "${prefix}"`
+      ).toBe(true)
     }
     // The handoff completion + report-archived events each appear exactly once.
     expect(actions.filter((a) => a === 'skill.handoff.completed')).toHaveLength(1)
@@ -168,7 +182,7 @@ describe('sample skill — slack-incident-alert', () => {
   it('suggest returns steps for needs_attention nodes', async () => {
     const run = await engine.runPhase(
       engine.startRun({ orgId: 'org_demo', skill: makeSkill(), map: demoMap() }).id,
-      { orgId: 'org_demo', skill: makeSkill(), map: demoMap() },
+      { orgId: 'org_demo', skill: makeSkill(), map: demoMap() }
     )
     const out = run.output as { steps: Array<{ title: string; affectedNodeIds: string[] }> }
     expect(out.steps.length).toBeGreaterThan(0)
@@ -192,7 +206,11 @@ describe('sample skill — slack-incident-alert', () => {
     const start = engine.startRun({ orgId: 'org_demo', skill: makeSkill(), map: demoMap() })
     await engine.runPhase(start.id, { orgId: 'org_demo', skill: makeSkill(), map: demoMap() }) // suggest
     await engine.runPhase(start.id, { orgId: 'org_demo', skill: makeSkill(), map: demoMap() }) // implement
-    const run = await engine.runPhase(start.id, { orgId: 'org_demo', skill: makeSkill(), map: demoMap() }) // wire
+    const run = await engine.runPhase(start.id, {
+      orgId: 'org_demo',
+      skill: makeSkill(),
+      map: demoMap(),
+    }) // wire
     const wiring = run.output as { credentialRef: string }
     expect(isCredentialRef(wiring.credentialRef)).toBe(true)
     // secret material is readable only server-side via the vault; output has none.
@@ -211,7 +229,10 @@ describe('sample skill — slack-incident-alert', () => {
       map: demoMap(),
       orgSettings: { slackChannel: '#ops-alerts' },
     })
-    const verify = run.output as { overall: string; checks: Array<{ check: string; result: string }> }
+    const verify = run.output as {
+      overall: string
+      checks: Array<{ check: string; result: string }>
+    }
     expect(verify.overall).toBe('pass')
     expect(verify.checks.some((c) => c.check === 'slack.credential.ref.created')).toBe(true)
   })
@@ -223,7 +244,9 @@ describe('sample skill — slack-incident-alert', () => {
       map: demoMap(),
       orgSettings: { slackChannel: '#ops-alerts' },
     })
-    const handoff = finalRun.output as { report: { summary: string; ownerAssignment: { assignee: string } } }
+    const handoff = finalRun.output as {
+      report: { summary: string; ownerAssignment: { assignee: string } }
+    }
     expect(handoff.report.summary).toContain('Slack')
     expect(handoff.report.ownerAssignment.assignee).toBe('operator')
   })

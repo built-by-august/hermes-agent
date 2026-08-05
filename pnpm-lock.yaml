@@ -130,6 +130,9 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.20.1)(jsdom@25.0.1)
+      zod:
+        specifier: ^3.23.8
+        version: 3.25.76
 
   packages/contracts:
     dependencies:
@@ -185,7 +188,7 @@ importers:
         version: 22.20.1
       eslint:
         specifier: ^9.17.0
-        version: 9.39.5
+        version: 9.39.5(jiti@2.7.0)
       tsx:
         specifier: ^4.19.2
         version: 4.23.5

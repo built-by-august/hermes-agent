@@ -101,7 +101,7 @@ runDemo()
     console.log(
       `\n[skills demo] run ${result.runId} -> ${result.status}/${result.phase}\n` +
         result.auditActions.map((a) => `  • ${a}`).join('\n') +
-        `\n\nasserted ${result.auditActions.length} audit events for the full loop.\n`,
+        `\n\nasserted ${result.auditActions.length} audit events for the full loop.\n`
     )
   })
   .catch((err) => {

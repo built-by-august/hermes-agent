@@ -16,6 +16,16 @@ export const config = tseslint.config(
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
+    name: 'app/no-unused-vars',
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true },
+      ],
+    },
+  },
+  {
     name: 'app/globals',
     files: ['**/*.{ts,tsx}'],
     languageOptions: {

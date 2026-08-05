@@ -70,10 +70,7 @@ export interface RefreshTokenPayload {
   typ: 'refresh'
 }
 
-export async function issueTokenPair(
-  app: FastifyInstance,
-  userId: string
-): Promise<TokenPair> {
+export async function issueTokenPair(app: FastifyInstance, userId: string): Promise<TokenPair> {
   const accessToken = app.jwt.sign({ sub: userId, typ: 'access' } satisfies AccessTokenPayload, {
     expiresIn: ACCESS_TOKEN_TTL_SECONDS,
   })
@@ -104,10 +101,7 @@ export async function verifyRefreshToken(
  * ------------------------------------------------------------------ */
 
 /** Requires a valid Bearer access token; attaches request.authUser. */
-export async function requireAuth(
-  this: FastifyInstance,
-  request: FastifyRequest
-): Promise<void> {
+export async function requireAuth(this: FastifyInstance, request: FastifyRequest): Promise<void> {
   try {
     const payload = await request.jwtVerify<AccessTokenPayload>()
     if (!payload.sub) throw new Error('missing sub')

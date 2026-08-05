@@ -37,7 +37,10 @@ export const skillManifestSchema = z.object({
   phases: z
     .array(z.enum(['suggest', 'implement', 'wire', 'verify', 'handoff']))
     .default(['suggest', 'implement', 'wire', 'verify', 'handoff']),
-  capabilities: capabilitiesSchema.default({ connectors: [], risk: 'low' } satisfies SkillCapabilities),
+  capabilities: capabilitiesSchema.default({
+    connectors: [],
+    risk: 'low',
+  } satisfies SkillCapabilities),
   entry: z.string().min(1).default('index.ts'),
   implemented: z.boolean().default(true),
   remainingWork: z.array(z.string()).default([]),
@@ -56,7 +59,10 @@ export interface LoadSkillFromDirOptions {
  * Load a skill package from a directory containing skill.json.
  * The entry module must default-export a SkillLifecycle.
  */
-export async function loadSkillFromDir(dir: string, options: LoadSkillFromDirOptions = {}): Promise<SkillPackage> {
+export async function loadSkillFromDir(
+  dir: string,
+  options: LoadSkillFromDirOptions = {}
+): Promise<SkillPackage> {
   const manifestPath = path.join(dir, 'skill.json')
   let raw: unknown
   try {
@@ -75,12 +81,16 @@ export async function loadSkillFromDir(dir: string, options: LoadSkillFromDirOpt
   try {
     mod = await import(entryPath)
   } catch (err) {
-    throw new Error(`skill package ${manifest.slug}: failed to import entry "${manifest.entry}": ${String(err)}`)
+    throw new Error(
+      `skill package ${manifest.slug}: failed to import entry "${manifest.entry}": ${String(err)}`
+    )
   }
 
   const lifecycle = (mod as { default?: SkillLifecycle }).default
   if (!lifecycle) {
-    throw new Error(`skill package ${manifest.slug}: entry "${manifest.entry}" must default-export a SkillLifecycle`)
+    throw new Error(
+      `skill package ${manifest.slug}: entry "${manifest.entry}" must default-export a SkillLifecycle`
+    )
   }
   for (const phase of manifest.phases) {
     if (typeof (lifecycle as unknown as Record<string, unknown>)[phase] !== 'function') {
@@ -92,7 +102,10 @@ export async function loadSkillFromDir(dir: string, options: LoadSkillFromDirOpt
 }
 
 /** Load every skill package under a parent directory (one subdir per skill). */
-export async function loadSkillsFromDir(parentDir: string, options: LoadSkillFromDirOptions = {}): Promise<SkillPackage[]> {
+export async function loadSkillsFromDir(
+  parentDir: string,
+  options: LoadSkillFromDirOptions = {}
+): Promise<SkillPackage[]> {
   const entries = await fs.readdir(parentDir, { withFileTypes: true })
   const packages: SkillPackage[] = []
   for (const entry of entries) {

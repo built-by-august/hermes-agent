@@ -189,7 +189,11 @@ export function registerOrgRoutes(app: FastifyInstance, deps: OrgRouteDeps): voi
 
       const target = await prisma.user.findUnique({ where: { email: body.email } })
       if (!target) {
-        throw new ApiError(404, 'not_found', `No user exists with email ${body.email}. Invites target existing accounts.`)
+        throw new ApiError(
+          404,
+          'not_found',
+          `No user exists with email ${body.email}. Invites target existing accounts.`
+        )
       }
 
       const existing = await prisma.membership.findUnique({

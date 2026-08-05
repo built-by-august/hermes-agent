@@ -66,7 +66,12 @@ export async function seed(prisma: PrismaClient): Promise<void> {
     { name: 'Client intake', type: 'process', status: 'active', position: { x: 60, y: 60 } },
     { name: 'CRM: HubSpot', type: 'tool', status: 'active', position: { x: 320, y: 60 } },
     { name: 'Discovery call', type: 'step', status: 'active', position: { x: 60, y: 220 } },
-    { name: 'Proposal & contract', type: 'process', status: 'active', position: { x: 320, y: 220 } },
+    {
+      name: 'Proposal & contract',
+      type: 'process',
+      status: 'active',
+      position: { x: 320, y: 220 },
+    },
     { name: 'Project kickoff', type: 'step', status: 'active', position: { x: 60, y: 380 } },
     { name: 'Invoicing', type: 'process', status: 'active', position: { x: 320, y: 380 } },
     { name: 'Slack: #ops-alerts', type: 'system', status: 'active', position: { x: 580, y: 60 } },
@@ -101,9 +106,19 @@ export async function seed(prisma: PrismaClient): Promise<void> {
   }> = [
     { source: 'Client intake', target: 'CRM: HubSpot', label: 'writes to', type: 'data_flow' },
     { source: 'Client intake', target: 'Discovery call', label: 'hands off to', type: 'handoff' },
-    { source: 'Discovery call', target: 'Proposal & contract', label: 'hands off to', type: 'handoff' },
+    {
+      source: 'Discovery call',
+      target: 'Proposal & contract',
+      label: 'hands off to',
+      type: 'handoff',
+    },
     { source: 'CRM: HubSpot', target: 'Proposal & contract', label: 'feeds', type: 'data_flow' },
-    { source: 'Proposal & contract', target: 'Project kickoff', label: 'hands off to', type: 'handoff' },
+    {
+      source: 'Proposal & contract',
+      target: 'Project kickoff',
+      label: 'hands off to',
+      type: 'handoff',
+    },
     { source: 'Project kickoff', target: 'Invoicing', label: 'hands off to', type: 'handoff' },
     { source: 'Invoicing', target: 'QuickBooks', label: 'exports to', type: 'data_flow' },
     { source: 'Monthly close', target: 'Invoicing', label: 'depends on', type: 'dependency' },
@@ -160,14 +175,16 @@ export async function seed(prisma: PrismaClient): Promise<void> {
       severity: 'medium',
       sourceType: 'analysis',
       title: 'Monthly close is paused with no owner',
-      description: 'The Monthly close step has been paused since late June and no owner is assigned to resume it.',
+      description:
+        'The Monthly close step has been paused since late June and no owner is assigned to resume it.',
       evidence: { pausedSince: '2026-06-30' },
     },
     {
       severity: 'low',
       sourceType: 'analysis',
       title: 'No alerting on client intake failures',
-      description: 'Failures in the client intake process are only discovered when a customer complains.',
+      description:
+        'Failures in the client intake process are only discovered when a customer complains.',
       evidence: { incidentsLast30d: 2 },
       suggestedSkillId: skill.id,
     },
@@ -201,7 +218,9 @@ export async function seed(prisma: PrismaClient): Promise<void> {
       config: {},
     },
   })
-  await audit(prisma, org.id, 'connector.created', 'Connector', connector.id, { kind: connector.kind })
+  await audit(prisma, org.id, 'connector.created', 'Connector', connector.id, {
+    kind: connector.kind,
+  })
 
   await audit(prisma, org.id, 'org.seeded', 'Organization', org.id, { dataset: 'demo' })
 

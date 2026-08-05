@@ -46,7 +46,9 @@ export function runSlackChecks(input: SlackCheckInput): CheckResult[] {
   checks.push({
     check: 'slack.dryrun.no_live_side_effects',
     result: input.dryRun ? 'pass' : 'warn',
-    detail: input.dryRun ? 'sandbox mode — nothing applied to live Slack' : 'live mode not enabled in MVP',
+    detail: input.dryRun
+      ? 'sandbox mode — nothing applied to live Slack'
+      : 'live mode not enabled in MVP',
   })
 
   return checks

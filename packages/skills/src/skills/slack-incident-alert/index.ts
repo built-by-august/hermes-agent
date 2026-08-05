@@ -35,9 +35,7 @@ function findAttentionNodes(ctx: SkillContext) {
     .map((f) => f.evidence?.nodeId)
     .filter(Boolean) as string[]
 
-  const fromMap = ctx.map.nodes
-    .filter((n) => n.status === 'needs_attention')
-    .map((n) => n.id)
+  const fromMap = ctx.map.nodes.filter((n) => n.status === 'needs_attention').map((n) => n.id)
 
   const combined = [...new Set([...fromFindings, ...fromMap])]
   return combined
@@ -48,121 +46,127 @@ function findAttentionNodes(ctx: SkillContext) {
 // SkillLifecycle).
 const lifecycle: SkillLifecycle = {
   async suggest(ctx: SkillContext) {
-      const affected = findAttentionNodes(ctx)
-      const channel = (ctx.orgSettings.slackChannel as string) || DEFAULT_CHANNEL
+    const affected = findAttentionNodes(ctx)
+    const channel = (ctx.orgSettings.slackChannel as string) || DEFAULT_CHANNEL
 
-      const steps: ProposedStep[] = affected.map((nodeId, i) => ({
-        id: `sia-step-${i + 1}`,
-        title: `Alert on #${channel} when "${nodeId}" fails`,
-        description: `Post a Slack message to ${channel} when node ${nodeId} is flagged needs_attention or fails.`,
-        rationale: 'Surfaces operational failures to the team in real time without manual polling.',
+    const steps: ProposedStep[] = affected.map((nodeId, i) => ({
+      id: `sia-step-${i + 1}`,
+      title: `Alert on #${channel} when "${nodeId}" fails`,
+      description: `Post a Slack message to ${channel} when node ${nodeId} is flagged needs_attention or fails.`,
+      rationale: 'Surfaces operational failures to the team in real time without manual polling.',
+      risk: 'low' as const,
+      affectedNodeIds: [nodeId],
+      phase: 'implement' as const,
+      effort: 'S' as const,
+      status: 'proposed' as const,
+    }))
+
+    if (steps.length === 0) {
+      steps.push({
+        id: 'sia-step-0',
+        title: `Stand up ${channel} ops-alert monitor`,
+        description: `Create the ${channel} alert rule so future failures are reported.`,
+        rationale:
+          'No failing nodes today, but the monitor should be ready before the first incident.',
         risk: 'low' as const,
-        affectedNodeIds: [nodeId],
+        affectedNodeIds: ctx.map.nodes.slice(0, 1).map((n: OperationNode) => n.id),
         phase: 'implement' as const,
-        effort: 'S' as const,
+        effort: 'M' as const,
         status: 'proposed' as const,
-      }))
-
-      if (steps.length === 0) {
-        steps.push({
-          id: 'sia-step-0',
-          title: `Stand up ${channel} ops-alert monitor`,
-          description: `Create the ${channel} alert rule so future failures are reported.`,
-          rationale: 'No failing nodes today, but the monitor should be ready before the first incident.',
-          risk: 'low' as const,
-          affectedNodeIds: ctx.map.nodes.slice(0, 1).map((n: OperationNode) => n.id),
-          phase: 'implement' as const,
-          effort: 'M' as const,
-          status: 'proposed' as const,
-        })
-      }
-
-      return {
-        steps: steps.map((s) => ({ ...s, status: 'approved' as const })),
-        summary: `Proposes a Slack alert to ${channel} for ${steps.length} ops node(s) needing attention.`,
-      }
-    },
-
-    async implement(ctx: SkillContext, steps) {
-      const channel = (ctx.orgSettings.slackChannel as string) || DEFAULT_CHANNEL
-      const artifact = {
-        type: 'slack.alert.rule',
-        channel,
-        webhookEnv: 'SLACK_WEBHOOK_URL',
-        trigger: { onNodeStatus: ['needs_attention', 'failed'] },
-        stepsReferenced: steps.map((s) => s.id),
-      }
-      // MVP sandbox: authored but NEVER applied to a live system.
-      return {
-        artifact,
-        applied: false as const,
-        dryRun: true as const,
-        stepsCompleted: steps.map((s) => s.id),
-      }
-    },
-
-    async wire(ctx: SkillContext, _steps, implemented) {
-      const slack = ctx.connectors.get('slack')
-      if (!slack) {
-        throw new Error('slack connector not available in this run context')
-      }
-      await slack.connect({
-        endpoint: 'https://hooks.slack.com/services/**',
-        credentials: { token: 'xoxb-simulated' },
       })
-      await slack.verify() // simulated
+    }
 
-      // Store the secret in the vault; expose only the reference.
-      const { storeCredential } = await import('../../credentials.js')
-      const credentialRef = storeCredential('xoxb-simulated-webhook-url')
+    return {
+      steps: steps.map((s) => ({ ...s, status: 'approved' as const })),
+      summary: `Proposes a Slack alert to ${channel} for ${steps.length} ops node(s) needing attention.`,
+    }
+  },
 
-      return {
-        connectorKind: 'slack',
-        endpoint: 'https://hooks.slack.com/services/**',
-        credentialRef,
-        wiringPlan: {
-          artifact: implemented.artifact,
-          note: 'simulated; no live webhook created (dryRun)',
-        },
-        status: 'configured',
-      }
-    },
+  async implement(ctx: SkillContext, steps) {
+    const channel = (ctx.orgSettings.slackChannel as string) || DEFAULT_CHANNEL
+    const artifact = {
+      type: 'slack.alert.rule',
+      channel,
+      webhookEnv: 'SLACK_WEBHOOK_URL',
+      trigger: { onNodeStatus: ['needs_attention', 'failed'] },
+      stepsReferenced: steps.map((s) => s.id),
+    }
+    // MVP sandbox: authored but NEVER applied to a live system.
+    return {
+      artifact,
+      applied: false as const,
+      dryRun: true as const,
+      stepsCompleted: steps.map((s) => s.id),
+    }
+  },
 
-    async verify(ctx: SkillContext, wiring) {
-      const slack = ctx.connectors.get('slack')
-      const connectorChecks = slack ? await slack.verify() : []
-      const input: SlackCheckInput = {
-        wiring,
-        orgSettings: ctx.orgSettings,
-        dryRun: ctx.dryRun,
-      }
-      const skillChecks = runSlackChecks(input)
-      const checks = [...connectorChecks, ...skillChecks]
-      const failed = checks.filter((c) => c.result === 'fail').length
-      const warned = checks.filter((c) => c.result === 'warn').length
-      const passed = checks.filter((c) => c.result === 'pass').length
-      const overall = failed > 0 ? 'fail' : warned > 0 ? 'warn' : 'pass'
-      return { checks, passed, failed, warned, overall }
-    },
+  async wire(ctx: SkillContext, _steps, implemented) {
+    const slack = ctx.connectors.get('slack')
+    if (!slack) {
+      throw new Error('slack connector not available in this run context')
+    }
+    await slack.connect({
+      endpoint: 'https://hooks.slack.com/services/**',
+      credentials: { token: 'xoxb-simulated' },
+    })
+    await slack.verify() // simulated
 
-    async handoff(ctx: SkillContext, verification) {
-      const channel = (ctx.orgSettings.slackChannel as string) || DEFAULT_CHANNEL
-      const report: HandoffReportData = {
-        summary: `Wired Slack alert on ${channel} (simulated). ${verification.passed} check(s) passed, ${verification.failed} failed.`,
-        ownerAssignment: {
-          assignee: 'operator',
-          remainingManualSteps: [`Rename channel ${channel} if not yet created`, 'Add real SLACK_WEBHOOK_URL to env before going live'],
-        },
-        steps: Array.isArray(ctx.input.steps) ? (ctx.input.steps as Array<Record<string, unknown>>) : [],
-        verification: {
-          overall: verification.overall,
-          checks: verification.checks,
-        },
-        auditTrail: [],
-      }
-      return { report }
-    },
-  }
+    // Store the secret in the vault; expose only the reference.
+    const { storeCredential } = await import('../../credentials.js')
+    const credentialRef = storeCredential('xoxb-simulated-webhook-url')
+
+    return {
+      connectorKind: 'slack',
+      endpoint: 'https://hooks.slack.com/services/**',
+      credentialRef,
+      wiringPlan: {
+        artifact: implemented.artifact,
+        note: 'simulated; no live webhook created (dryRun)',
+      },
+      status: 'configured',
+    }
+  },
+
+  async verify(ctx: SkillContext, wiring) {
+    const slack = ctx.connectors.get('slack')
+    const connectorChecks = slack ? await slack.verify() : []
+    const input: SlackCheckInput = {
+      wiring,
+      orgSettings: ctx.orgSettings,
+      dryRun: ctx.dryRun,
+    }
+    const skillChecks = runSlackChecks(input)
+    const checks = [...connectorChecks, ...skillChecks]
+    const failed = checks.filter((c) => c.result === 'fail').length
+    const warned = checks.filter((c) => c.result === 'warn').length
+    const passed = checks.filter((c) => c.result === 'pass').length
+    const overall = failed > 0 ? 'fail' : warned > 0 ? 'warn' : 'pass'
+    return { checks, passed, failed, warned, overall }
+  },
+
+  async handoff(ctx: SkillContext, verification) {
+    const channel = (ctx.orgSettings.slackChannel as string) || DEFAULT_CHANNEL
+    const report: HandoffReportData = {
+      summary: `Wired Slack alert on ${channel} (simulated). ${verification.passed} check(s) passed, ${verification.failed} failed.`,
+      ownerAssignment: {
+        assignee: 'operator',
+        remainingManualSteps: [
+          `Rename channel ${channel} if not yet created`,
+          'Add real SLACK_WEBHOOK_URL to env before going live',
+        ],
+      },
+      steps: Array.isArray(ctx.input.steps)
+        ? (ctx.input.steps as Array<Record<string, unknown>>)
+        : [],
+      verification: {
+        overall: verification.overall,
+        checks: verification.checks,
+      },
+      auditTrail: [],
+    }
+    return { report }
+  },
+}
 
 // In-repo factory that builds a SkillPackage (manifest + lifecycle) so the
 // registry and tests can register the sample skill without going through the
@@ -174,7 +178,8 @@ export function slackIncidentAlert(): SkillPackage {
       slug: 'slack-incident-alert',
       name: 'Slack Incident Alert',
       version: '0.1.0',
-      description: 'Wires a Slack channel alert when an ops step on the map fails or is marked needs_attention.',
+      description:
+        'Wires a Slack channel alert when an ops step on the map fails or is marked needs_attention.',
       phases: ['suggest', 'implement', 'wire', 'verify', 'handoff'],
       capabilities: { connectors: ['slack'], risk: 'low' },
       entry: 'index.ts',

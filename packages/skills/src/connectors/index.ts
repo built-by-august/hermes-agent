@@ -11,7 +11,13 @@
  *  - createBuzzConnectorStub() — clearly-marked NOT_IMPLEMENTED Buzz stub.
  */
 
-import type { Connector, ConnectorConfig, ConnectResult, ConnectorResolver, CheckResult } from '../types.js'
+import type {
+  Connector,
+  ConnectorConfig,
+  ConnectResult,
+  ConnectorResolver,
+  CheckResult,
+} from '../types.js'
 
 /* ---------------------------------------------------------------- *
  *  Slack connector (simulated) — used by the sample skill
@@ -36,7 +42,11 @@ export class SlackConnector implements Connector {
   async verify(): Promise<CheckResult[]> {
     return [
       { check: 'slack.webhook.reachable', result: 'pass', detail: 'simulated reachability check' },
-      { check: 'slack.channel.exists', result: 'pass', detail: '#ops-alerts resolved in simulation' },
+      {
+        check: 'slack.channel.exists',
+        result: 'pass',
+        detail: '#ops-alerts resolved in simulation',
+      },
     ]
   }
 }
@@ -75,9 +85,7 @@ export class BuzzConnectorStub implements Connector {
   }
 
   async verify(): Promise<CheckResult[]> {
-    return [
-      { check: 'buzz.adapter.present', result: 'fail', detail: 'NOT_IMPLEMENTED stub' },
-    ]
+    return [{ check: 'buzz.adapter.present', result: 'fail', detail: 'NOT_IMPLEMENTED stub' }]
   }
 
   describeRemainingWork(): string[] {

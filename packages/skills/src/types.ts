@@ -14,12 +14,7 @@
  * authored and simulated, never applied to a live system.
  */
 
-import type {
-  Finding,
-  OperationMap,
-  OperationNode,
-  SkillPhase,
-} from '@repo/contracts'
+import type { Finding, OperationMap, OperationNode, SkillPhase } from '@repo/contracts'
 
 export type { Finding, OperationMap, OperationNode, SkillPhase }
 
@@ -171,10 +166,7 @@ export interface SkillContext {
 /** The coded lifecycle a skill package implements. */
 export interface SkillLifecycle {
   suggest(ctx: SkillContext): SuggestOutput | Promise<SuggestOutput>
-  implement(
-    ctx: SkillContext,
-    steps: ProposedStep[]
-  ): ImplementOutput | Promise<ImplementOutput>
+  implement(ctx: SkillContext, steps: ProposedStep[]): ImplementOutput | Promise<ImplementOutput>
   wire(
     ctx: SkillContext,
     steps: ProposedStep[],
