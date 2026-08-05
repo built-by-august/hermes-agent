@@ -1,0 +1,36 @@
+# Dependencies / build caches
+node_modules
+**/node_modules
+.pnpm-store
+.turbo
+dist
+**/dist
+build
+**/build
+coverage
+**/coverage
+
+# Repo VCS / upstream fork
+.git
+**/.git
+upstream
+.github
+
+# Local databases & env
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+.env
+.env.*
+!.env.example
+
+# Logs / OS
+*.log
+npm-debug.log*
+.DS_Store
+
+# Editor / CI
+.idea
+.vscode
+*.tsbuildinfo

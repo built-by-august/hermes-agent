@@ -1,0 +1,45 @@
+# Full stack for the Custom Hermes Agent webapp.
+#
+# The API schema (apps/api/prisma/schema.prisma) is SQLite-first today — the
+# MVP runs with zero external infrastructure. The database is therefore an
+# embedded SQLite file, persisted on a named volume, owned by the api service
+# (frontend + backend + auth all live inside the api/web containers).
+#
+#   docker compose up --build      # full stack on http://localhost:8080 (api :4000)
+#
+# When the schema is ported to PostgreSQL (see deploy/k8s and
+# docker-compose.postgres.yml for the opt-in Postgres path), migrate the
+# provider and override DATABASE_URL there instead.
+#
+# Secrets (JWT_SECRET) are injected via .env — copy .env.example and never
+# commit a real .env.
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      DATABASE_URL: file:/app/apps/api/data/dev.db
+      JWT_SECRET: ${JWT_SECRET:-please-change-this-secret}
+      PORT: '4000'
+      HOST: '0.0.0.0'
+    volumes:
+      - api-data:/app/apps/api/data
+    ports:
+      - '4000:4000'
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    depends_on:
+      - api
+    environment:
+      # Injected into nginx at runtime (see deploy/nginx-entrypoint.sh envsubst).
+      API_UPSTREAM: http://api:4000
+    ports:
+      - '8080:80'
+
+volumes:
+  api-data:

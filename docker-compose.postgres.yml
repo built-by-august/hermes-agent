@@ -1,0 +1,59 @@
+# Opt-in PostgreSQL stack for the Custom Hermes Agent.
+#
+# NOTE: this path requires porting apps/api/prisma/schema.prisma to the
+# "postgresql" provider first — the schema is SQLite-first today and the API
+# will refuse a Postgres DATABASE_URL until the provider is changed (validation
+# error P1012). See docs/architecture.md, README, and the schema header comment.
+#
+#   docker compose -f docker-compose.postgres.yml up --build
+#
+# or alongside a base file:
+#   docker compose -f docker-compose.yml -f docker-compose.postgres.yml up --build
+#
+# Secrets: copy .env.example and set POSTGRES_PASSWORD + JWT_SECRET.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hermes}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-hermes}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-hermes} -d ${POSTGRES_DB:-hermes}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - '5432:5432'
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hermes}:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-hermes}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-please-change-this-secret}
+      PORT: '4000'
+      HOST: '0.0.0.0'
+    ports:
+      - '4000:4000'
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    depends_on:
+      - api
+    environment:
+      API_UPSTREAM: http://api:4000
+    ports:
+      - '8080:80'
+
+volumes:
+  pgdata:

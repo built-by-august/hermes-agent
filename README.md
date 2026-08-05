@@ -77,6 +77,40 @@ environment in this scaffold (the Vite proxy handles `/api`).
   frontend and backend consume the generated types directly — keep the contract
   as the single source of truth and both apps stay in sync.
 
+## Docker (single-host deployment)
+
+The Monorepo ships multi-stage Dockerfiles for the **api** (Fastify + Prisma) and
+**web** (React + Vite, served by nginx which reverse-proxies `/api/v1` to the
+api). The database is an embedded SQLite file kept on a named volume, so the
+default stack needs **no external infrastructure**:
+
+```bash
+docker compose up --build      # full stack
+#   web -> http://localhost:8080   (nginx, SPA + /api/v1 proxy)
+#   api -> http://localhost:4000   (Fastify, prefix /api/v1)
+```
+
+- The API applies Prisma migrations and seeds the demo org (`dale@example.com`,
+  password `Str0ng!Pass`) on first boot; the SQLite DB persists on the
+  `api-data` volume.
+- `JWT_SECRET` is read from `.env` (`cp .env.example .env`); it defaults to a
+  dev placeholder otherwise.
+
+### PostgreSQL (opt-in)
+
+The Prisma schema is SQLite-first today, so Postgres requires first porting
+`apps/api/prisma/schema.prisma` to the `postgresql` provider (see the schema
+header comment). Once ported, an opt-in stack with a `db` service is provided:
+
+```bash
+docker compose -f docker-compose.postgres.yml up --build
+```
+
+Kubernetes manifests (namespace, config, secrets, postgres StatefulSet/Service)
+live under `deploy/k8s/` for the deployment path. Secrets are placeholders —
+generate and apply real ones before production (see the comments in
+`deploy/k8s/secret.yaml`).
+
 ## CI
 
 `.github/workflows/ci.yml` runs on every pull request and push to `main`:

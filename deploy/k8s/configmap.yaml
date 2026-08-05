@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-hermes-config
+  namespace: custom-hermes
+  labels:
+    app.kubernetes.io/part-of: custom-hermes-agent
+data:
+  # Non-secret runtime configuration shared by API + web.
+  DATABASE_URL: 'postgresql://hermes:CHANGE_ME@postgres:5432/hermes?schema=public'
+  POSTGRES_USER: 'hermes'
+  POSTGRES_DB: 'hermes'
+  PORT: '4000'
+  # The browser never sees this; it only needs the path nginx proxies to.
+  VITE_API_URL: '/api/v1'
+  # NOTE: VITE_API_MODE + VITE_API_URL are baked into the web image at build time.
