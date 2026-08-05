@@ -53,11 +53,11 @@ if curl -sf "http://127.0.0.1:$API_PORT/health" | grep -q '"ok"'; then ok "/heal
 
 log "== Auth (register -> login -> refresh -> me) =="
 REG=$(curl -s -X POST "$B/auth/register" -H 'content-type: application/json' \
-  -d '{"email":"stackcheck@example.com","password":"Str0ng!Pass","name":"Stack Check"}')
+  -d "{\"email\":\"stackcheck-$$-$(date +%s)@example.com\",\"password\":\"Str0ng!Pass\",\"name\":\"Stack Check\"}")
 AT=$(printf '%s' "$REG" | python3 -c "import sys,json;print(json.load(sys.stdin).get('accessToken',''))" 2>/dev/null)
 [ -n "$AT" ] && ok "register returns access token" || bad "register token"
 ME=$(curl -s "$B/auth/me" -H "authorization: Bearer $AT")
-echo "$ME" | grep -q "stackcheck@example.com" && ok "/me returns authenticated user" || bad "/me"
+echo "$ME" | grep -q "stackcheck" && ok "/me returns authenticated user" || bad "/me"
 RT=$(printf '%s' "$REG" | python3 -c "import sys,json;print(json.load(sys.stdin).get('refreshToken',''))" 2>/dev/null)
 RR=$(curl -s -X POST "$B/auth/refresh" -H 'content-type: application/json' -d "{\"refreshToken\":\"$RT\"}")
 printf '%s' "$RR" | grep -q '"accessToken"' && ok "refresh issues new access token" || bad "refresh"
