@@ -22,6 +22,12 @@ coverage/
 npm-debug.log*
 pnpm-debug.log*
 
+# Local databases (dev + test SQLite files)
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+
 # OS
 .DS_Store
 Thumbs.db

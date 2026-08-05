@@ -62,6 +62,7 @@ export type User = z.infer<typeof userSchema>
 export const authResponseSchema = z.object({
   user: userSchema,
   accessToken: jwtToken,
+  refreshToken: jwtToken,
   expiresIn: z.number().int().positive(),
 })
 export type AuthResponse = z.infer<typeof authResponseSchema>
@@ -236,3 +237,86 @@ export const apiErrorSchema = z.object({
   details: z.unknown().optional(),
 })
 export type ApiError = z.infer<typeof apiErrorSchema>
+
+/* ---------------------------------------------------------------- *
+ *  Request & response schemas for the backend API (single source)
+ * ---------------------------------------------------------------- */
+export const refreshRequestSchema = z.object({
+  refreshToken: jwtToken,
+})
+export type RefreshRequest = z.infer<typeof refreshRequestSchema>
+
+export const authMeResponseSchema = z.object({
+  user: userSchema,
+  memberships: z.array(
+    z.object({
+      orgId: uuid,
+      orgName: z.string(),
+      role: membershipRoleSchema,
+    })
+  ),
+})
+export type AuthMeResponse = z.infer<typeof authMeResponseSchema>
+
+export const createOrganizationRequestSchema = organizationSchema.omit({
+  id: true,
+  ownerId: true,
+  createdAt: true,
+})
+export type CreateOrganizationRequest = z.infer<typeof createOrganizationRequestSchema>
+
+export const updateOrganizationRequestSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  industry: z.string().max(100).nullable().optional(),
+  settings: z.record(z.unknown()).optional(),
+})
+export type UpdateOrganizationRequest = z.infer<typeof updateOrganizationRequestSchema>
+
+export const inviteMemberRequestSchema = z.object({
+  email: z.string().email(),
+  role: membershipRoleSchema,
+})
+export type InviteMemberRequest = z.infer<typeof inviteMemberRequestSchema>
+
+export const memberSchema = z.object({
+  id: uuid,
+  userId: uuid,
+  email: z.string().email(),
+  name: z.string(),
+  role: membershipRoleSchema,
+  createdAt: isoDate,
+})
+export type Member = z.infer<typeof memberSchema>
+
+export const patchNodeRequestSchema = createNodeRequestSchema.partial()
+export type PatchNodeRequest = z.infer<typeof patchNodeRequestSchema>
+
+export const findingStatusUpdateRequestSchema = z.object({
+  status: findingStatusSchema,
+})
+export type FindingStatusUpdateRequest = z.infer<typeof findingStatusUpdateRequestSchema>
+
+export const auditQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  cursor: z.string().optional(), // opaque keyset cursor (last seen audit id)
+  action: z.string().max(120).optional(),
+  actorType: z.enum(['user', 'skill', 'system']).optional(),
+  severity: auditSeveritySchema.optional(),
+})
+export type AuditQuery = z.infer<typeof auditQuerySchema>
+
+export const findingsQuerySchema = z.object({
+  severity: findingSeveritySchema.optional(),
+  status: findingStatusSchema.optional(),
+  sourceType: z.enum(['analysis', 'skill', 'manual']).optional(),
+})
+export type FindingsQuery = z.infer<typeof findingsQuerySchema>
+
+export const mapQuerySchema = z.object({})
+export type MapQuery = z.infer<typeof mapQuerySchema>
+
+export const orgParamsSchema = z.object({ orgId: uuid })
+export type OrgParams = z.infer<typeof orgParamsSchema>
+
+export const resourceParamsSchema = z.object({ orgId: uuid, id: uuid })
+export type ResourceParams = z.infer<typeof resourceParamsSchema>

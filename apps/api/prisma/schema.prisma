@@ -1,0 +1,302 @@
+// Custom Hermes Agent — data model (source of truth: docs/architecture.md §7)
+//
+// Provider note: this schema is written portably. The MVP runs on SQLite so the
+// API works with zero external infrastructure (local dev, CI, curl drill).
+// To deploy on PostgreSQL (docker-compose/E2E target), change the provider to
+// "postgresql" and set DATABASE_URL to a Postgres connection string — every
+// model/type below (Json, enums, uuids) maps 1:1 to Postgres types.
+//   - Json          -> jsonb  (PG) / text (SQLite)
+//   - enum          -> enum   (PG) / text+check (SQLite)
+//   - String @id    -> uuid   (PG) / text (SQLite)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & membership
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  memberships  Membership[]
+  ownedOrgs    Organization[] @relation("OrgOwner")
+  createdAt    DateTime @default(now())
+
+  @@index([email])
+}
+
+model Organization {
+  id             String       @id @default(uuid())
+  name           String
+  industry       String?
+  settings Json
+  ownerId        String
+  owner          User         @relation("OrgOwner", fields: [ownerId], references: [id])
+  memberships    Membership[]
+  nodes          OperationNode[]
+  edges          OperationEdge[]
+  auditEvents    AuditEvent[]
+  findings       Finding[]
+  skillRuns      SkillRun[]
+  connectors     Connector[]
+  handoffReports HandoffReport[]
+  createdAt      DateTime     @default(now())
+}
+
+model Membership {
+  id        String   @id @default(uuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, userId])
+  @@index([userId])
+}
+
+enum Role {
+  owner
+  admin
+  operator
+  auditor
+}
+
+// ---------------------------------------------------------------------------
+// Operation map (nodes + edges)
+// ---------------------------------------------------------------------------
+
+model OperationNode {
+  id        String   @id @default(uuid())
+  orgId     String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  name      String
+  type      NodeType
+  status    NodeStatus @default(active)
+  metadata Json
+  position  Json
+  createdAt DateTime @default(now())
+
+  sourceEdges OperationEdge[] @relation("EdgeSource")
+  targetEdges OperationEdge[] @relation("EdgeTarget")
+
+  @@index([orgId])
+}
+
+enum NodeType {
+  process
+  step
+  tool
+  system
+  handoff
+}
+
+enum NodeStatus {
+  active
+  paused
+  needs_attention
+}
+
+model OperationEdge {
+  id         String   @id @default(uuid())
+  orgId      String
+  org        Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  source     String
+  sourceNode OperationNode @relation("EdgeSource", fields: [source], references: [id], onDelete: Cascade)
+  target     String
+  targetNode OperationNode @relation("EdgeTarget", fields: [target], references: [id], onDelete: Cascade)
+  label      String?
+  type       EdgeType @default(dependency)
+  createdAt  DateTime @default(now())
+
+  @@unique([orgId, source, target])
+  @@index([orgId])
+}
+
+enum EdgeType {
+  dependency
+  handoff
+  data_flow
+}
+
+// ---------------------------------------------------------------------------
+// Audit (append-only by design — the API never exposes update/delete)
+// ---------------------------------------------------------------------------
+
+model AuditEvent {
+  id         Int           @id @default(autoincrement())
+  orgId      String
+  org        Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  actorId    String?
+  actorType  ActorType
+  action     String
+  targetType String?
+  targetId   String?
+  context Json
+  severity   AuditSeverity @default(info)
+  result     String?
+  createdAt  DateTime      @default(now())
+
+  @@index([orgId, createdAt(sort: Desc)])
+  @@index([orgId, action])
+}
+
+enum ActorType {
+  user
+  skill
+  system
+}
+
+enum AuditSeverity {
+  info
+  warning
+  critical
+}
+
+// ---------------------------------------------------------------------------
+// Findings
+// ---------------------------------------------------------------------------
+
+model Finding {
+  id               String          @id @default(uuid())
+  orgId            String
+  org              Organization    @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  sourceType       FindingSource
+  severity         FindingSeverity
+  title            String
+  description      String
+  evidence Json
+  status           FindingStatus   @default(open)
+  suggestedSkillId String?
+  suggestedSkill   Skill?          @relation(fields: [suggestedSkillId], references: [id])
+  createdAt        DateTime        @default(now())
+
+  @@index([orgId, status])
+}
+
+enum FindingSource {
+  analysis
+  skill
+  manual
+}
+
+enum FindingSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum FindingStatus {
+  open
+  acknowledged
+  resolved
+}
+
+// ---------------------------------------------------------------------------
+// Skills & skill runs (consumed by the skill-engine task; tables owned here)
+// ---------------------------------------------------------------------------
+
+model Skill {
+  id           String     @id @default(uuid())
+  slug         String     @unique
+  name         String
+  version      String
+  description  String
+  phases       Json // array of phase strings; maps to text[] on Postgres
+  capabilities Json
+  status       SkillStatus @default(active)
+  findings     Finding[]
+  runs         SkillRun[]
+  createdAt    DateTime   @default(now())
+}
+
+enum SkillStatus {
+  active
+  disabled
+}
+
+model SkillRun {
+  id        String        @id @default(uuid())
+  orgId     String
+  org       Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  skillId   String
+  skill     Skill         @relation(fields: [skillId], references: [id])
+  phase     SkillPhase
+  status    SkillRunStatus @default(pending)
+  dryRun    Boolean       @default(true)
+  input Json
+  output    Json?
+  error     String?
+  handoff   HandoffReport?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([orgId, skillId, status])
+}
+
+enum SkillPhase {
+  suggest
+  implement
+  wire
+  verify
+  handoff
+}
+
+enum SkillRunStatus {
+  pending
+  running
+  completed
+  failed
+}
+
+// ---------------------------------------------------------------------------
+// Connectors & handoff reports
+// ---------------------------------------------------------------------------
+
+model Connector {
+  id            String           @id @default(uuid())
+  orgId         String
+  org           Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  kind          String
+  displayName   String
+  credentialRef String? // encrypted ref — never returned by the API
+  config Json
+  status        ConnectorStatus  @default(disconnected)
+  createdAt     DateTime         @default(now())
+
+  @@unique([orgId, kind])
+  @@index([orgId])
+}
+
+enum ConnectorStatus {
+  disconnected
+  configured
+  verified
+}
+
+model HandoffReport {
+  id              String       @id @default(uuid())
+  orgId           String
+  org             Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  skillRunId      String       @unique
+  skillRun        SkillRun     @relation(fields: [skillRunId], references: [id], onDelete: Cascade)
+  summary         String
+  ownerAssignment Json
+  steps Json
+  verification Json
+  auditEventId    Int? // AuditEvent id archived with this report
+  createdAt       DateTime     @default(now())
+
+  @@index([orgId])
+}
